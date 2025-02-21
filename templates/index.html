@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <title>Comprovante de Recebimento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .signature-pad {
+            border: 1px solid #0041FF;
+            background-color: #FFFFFF;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .signature-pad canvas {
+            width: 100%;
+            height: 150px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-3">
+        <div class="text-center mb-3">
+            <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo Mantoma" class="img-fluid" style="max-width: 200px;">
+        </div>
+        <h1 class="text-center mb-4">Comprovante de Recebimento</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <div class="card w-75 mx-auto">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('submit_receipt') }}" id="receiptForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nome:</label>
+                        <select class="form-select" id="name" name="name" required>
+                            {% for name in names %}
+                                <option value="{{ name.id }}">{{ name.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Autorizo, para os devidos fins, a transferência do meu setor para o setor de destino, confirmando o aceite da transação.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sector_origin" class="form-label">Setor de Origem:</label>
+                        <select class="form-select" id="sector_origin" name="sector_origin" required>
+                            {% for sector in sectors %}
+                                <option value="{{ sector.id }}">{{ sector.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sector_destination" class="form-label">Setor de Destino:</label>
+                        <select class="form-select" id="sector_destination" name="sector_destination" required>
+                            {% for sector in sectors %}
+                                <option value="{{ sector.id }}">{{ sector.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Valor (R$):</label>
+                        <input type="number" step="0.01" class="form-control" id="amount" name="amount" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="authorized" name="authorized">
+                        <label class="form-check-label" for="authorized">Autorização</label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="signature" class="form-label">Assinatura (Desenhe aqui):</label>
+                        <div id="signature-pad" class="signature-pad">
+                            <canvas id="signatureCanvas"></canvas>
+                        </div>
+                        <button type="button" id="clearSignature" class="btn btn-secondary mt-2">Limpar Assinatura</button>
+                        <input type="hidden" name="signature" id="signatureData">
+                    </div>
+                    <div class="mb-3">
+                        <label for="observations" class="form-label">Observações:</label>
+                        <textarea class="form-control" id="observations" name="observations" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Usuário Atual: {{ current_user.username }}</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Enviar Comprovante</button>
+                </form>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger mt-3">Sair</a>
+                <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary mt-3">Painel Administrativo</a>
+            </div>
+        </div>
+        <div class="text-center mt-3 text-muted">
+            <small>Desenvolvido por <strong>Cleiton Teixeira - TI Mantoma</strong></small>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        var canvas = document.getElementById('signatureCanvas');
+        var ctx = canvas.getContext('2d');
+        var signatureData = document.getElementById('signatureData');
+
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        var drawing = false;
+        var lastX, lastY;
+
+        function startDrawing(e) {
+            drawing = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.strokeStyle = '#0041FF'; // Azul principal da marca
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+
+        function stopDrawing() {
+            drawing = false;
+            signatureData.value = canvas.toDataURL(); // Salva a assinatura em base64
+        }
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        document.getElementById('clearSignature').addEventListener('click', function() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            signatureData.value = '';
+        });
+
+        // Enviar o formulário com a assinatura
+        $('#receiptForm').submit(function(e) {
+            if (!signatureData.value) {
+                e.preventDefault();
+                alert('Por favor, desenhe uma assinatura antes de enviar.');
+            }
+        });
+    </script>
+</body>
+</html>

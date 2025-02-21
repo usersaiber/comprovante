@@ -1,0 +1,142 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #FFFFFF; /* Branco como fundo principal */
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+h1, h2 {
+    color: #0041FF; /* Azul principal da marca */
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.card {
+    background-color: #FFFFFF; /* Fundo branco para cards */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 65, 255, 0.1); /* Sombra sutil em azul */
+    border: 1px solid #0041FF; /* Borda em azul principal */
+    padding: 20px;
+}
+
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #FFFFFF; /* Fundo branco para tabelas */
+    border: 1px solid #0041FF; /* Borda em azul principal */
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: #F8F9FA; /* Tom muito claro para listras, mantendo branco predominante */
+}
+
+.table-hover tbody tr:hover {
+    background-color: #E9ECEF; /* Tom leve para hover, mantendo elegância */
+}
+
+.table-dark {
+    background-color: #0041FF; /* Azul principal para cabeçalhos de tabelas */
+    color: #FFFFFF; /* Texto branco para contraste */
+}
+
+.btn-primary {
+    background-color: #0041FF; /* Azul principal para botões primários */
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    color: #FFFFFF; /* Texto branco para contraste */
+}
+
+.btn-primary:hover {
+    background-color: #0033CC; /* Tom mais escuro de azul para hover */
+}
+
+.btn-secondary {
+    background-color: #FFFFFF; /* Branco para botões secundários */
+    border: 1px solid #0041FF; /* Borda em azul principal */
+    color: #0041FF; /* Texto azul para contraste */
+}
+
+.btn-secondary:hover {
+    background-color: #E9ECEF; /* Tom leve para hover */
+    border-color: #0033CC; /* Borda mais escura em hover */
+}
+
+.btn-danger {
+    background-color: #FFFFFF; /* Branco para botões de saída (sair) */
+    border: 1px solid #0a2355; /* Azul marinho secundário, usado com moderação */
+    color: #0a2355; /* Texto azul marinho para contraste */
+}
+
+.btn-danger:hover {
+    background-color: #E9ECEF; /* Tom leve para hover */
+    border-color: #081A44; /* Tom mais escuro de azul marinho */
+}
+
+.text-muted {
+    font-size: 0.9em;
+    color: #6C757D; /* Cinza escuro para textos secundários, mantendo contraste com branco */
+}
+
+.form-label {
+    font-weight: bold;
+    color: #0041FF; /* Azul principal para labels */
+}
+
+.form-control, .form-select {
+    border: 1px solid #0041FF; /* Borda em azul principal */
+    border-radius: 4px;
+    background-color: #FFFFFF; /* Fundo branco para campos */
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #0033CC; /* Tom mais escuro em foco */
+    box-shadow: 0 0 5px rgba(0, 65, 255, 0.3); /* Sombra sutil em azul */
+}
+
+.alert-success {
+    background-color: #D4EDDA; /* Tom verde claro para mensagens de sucesso */
+    border-color: #C3E6CB;
+    color: #155724;
+}
+
+.alert-danger {
+    background-color: #F8D7DA; /* Tom vermelho claro para mensagens de erro */
+    border-color: #F5C6CB;
+    color: #721C24;
+}
+img.img-fluid {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #FFFFFF; /* Fundo branco para o logotipo, se necessário */
+}
+
+.text-muted small {
+    font-size: 0.8em;
+    color: #6C757D; /* Cinza escuro para manter elegância */
+}
+
+.text-muted strong {
+    color: #0041FF; /* Azul principal para destacar seu nome */
+}
+.signature-pad {
+    border: 1px solid #0041FF;
+    background-color: #FFFFFF;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.signature-pad canvas {
+    width: 100%;
+    height: 150px;
+}
+
+.signature-pad img {
+    border: 1px solid #0041FF;
+    border-radius: 4px;
+}
