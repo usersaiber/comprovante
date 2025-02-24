@@ -3,26 +3,92 @@
 <head>
     <title>Comprovante de Recebimento</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
+        .sidebar {
+            height: 100%;
+            width: 250px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #F5F6FA; /* Cinza claro */
+            padding-top: 20px;
+            border-right: 1px solidrgb(46, 70, 204); /* Verde esmeralda */
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .sidebar a {
+            padding: 15px 20px;
+            text-decoration: none;
+            font-size: 16px;
+            color: #333333; /* Preto para contraste */
+            display: block;
+            font-family: 'Roboto', sans-serif;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background-color: #2e46cc; /* Verde esmeralda */
+            color: #FFFFFF; /* Branco para contraste */
+            border-radius: 4px;
+        }
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
         .signature-pad {
-            border: 1px solid #0041FF;
+            border: 1px solid #2e46cc;
             background-color: #FFFFFF;
             border-radius: 4px;
             margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         .signature-pad canvas {
             width: 100%;
             height: 150px;
         }
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                box-shadow: none;
+            }
+            .content {
+                margin-left: 0;
+                padding: 10px;
+            }
+            .sidebar a {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+            .card, .table {
+                width: 100% !important;
+            }
+            .form-control, .form-select {
+                font-size: 14px;
+            }
+            h1, h2 {
+                font-size: 20px;
+            }
+            .btn {
+                font-size: 14px;
+                padding: 8px 16px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container mt-3">
+    <div class="sidebar">
         <div class="text-center mb-3">
-            <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo Mantoma" class="img-fluid" style="max-width: 200px;">
+            <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo Mantoma" class="img-fluid" style="max-width: 150px; border-radius: 1%;">
         </div>
-        <h1 class="text-center mb-4">Comprovante de Recebimento</h1>
+        <a href="{{ url_for('index') }}" class="active">Formulário</a>
+        <a href="{{ url_for('admin_panel') }}">Painel Administrativo</a>
+        <a href="{{ url_for('logout') }}">Sair</a>
+    </div>
+    <div class="content">
+        <h1 class="text-center mb-4" style="color: #152583;">Comprovante de Recebimento</h1>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -30,9 +96,9 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        <div class="card w-75 mx-auto">
+        <div class="card w-100 mx-auto">
             <div class="card-body">
-                <form method="POST" action="{{ url_for('submit_receipt') }}" id="receiptForm">
+                <form method="POST" action="{{ url_for('submit_receipt') }}" id="receiptForm" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label for="name" class="form-label">Nome:</label>
                         <select class="form-select" id="name" name="name" required>
@@ -75,23 +141,32 @@
                         <input type="hidden" name="signature" id="signatureData">
                     </div>
                     <div class="mb-3">
-                        <label for="observations" class="form-label">Observações:</label>
-                        <textarea class="form-control" id="observations" name="observations" rows="3"></textarea>
+<form method="POST" action="{{ url_for('submit_receipt') }}" id="receiptForm" enctype="multipart/form-data">
+    <!-- ... outros campos ... -->
+    <div class="mb-3">
+        <label for="document" class="form-label">Anexar Documento (Opcional):</label>
+        <input type="file" class="form-control" id="document" name="document" accept=".pdf,.jpg,.png">
+    </div>
+    <!-- ... resto do formulário ... -->
+</form>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Usuário Atual: {{ current_user.username }}</label>
                     </div>
+                    <div class="mb-3">
+                        <label for="observations" class="form-label">Observações:</label>
+                        <textarea class="form-control" id="observations" name="observations" rows="3"></textarea>
+                    </div>
                     <button type="submit" class="btn btn-primary w-100">Enviar Comprovante</button>
                 </form>
-                <a href="{{ url_for('logout') }}" class="btn btn-danger mt-3">Sair</a>
-                <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary mt-3">Painel Administrativo</a>
             </div>
         </div>
         <div class="text-center mt-3 text-muted">
-            <small>Desenvolvido por <strong>Cleiton Teixeira - TI Mantoma</strong></small>
+            <small>Desenvolvido por <strong>Cleiton Teixeira - TI Mantomac</strong></small>
         </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         var canvas = document.getElementById('signatureCanvas');
         var ctx = canvas.getContext('2d');
@@ -113,7 +188,7 @@
             ctx.beginPath();
             ctx.moveTo(lastX, lastY);
             ctx.lineTo(e.offsetX, e.offsetY);
-            ctx.strokeStyle = '#0041FF'; // Azul principal da marca
+            ctx.strokeStyle = '#000000'; 
             ctx.lineWidth = 2;
             ctx.stroke();
             [lastX, lastY] = [e.offsetX, e.offsetY];
@@ -121,7 +196,7 @@
 
         function stopDrawing() {
             drawing = false;
-            signatureData.value = canvas.toDataURL(); // Salva a assinatura em base64
+            signatureData.value = canvas.toDataURL(); 
         }
 
         canvas.addEventListener('mousedown', startDrawing);
@@ -134,13 +209,42 @@
             signatureData.value = '';
         });
 
-        // Enviar o formulário com a assinatura
+        // Enviar o formulário com a assinatura e documento
         $('#receiptForm').submit(function(e) {
-            if (!signatureData.value) {
-                e.preventDefault();
-                alert('Por favor, desenhe uma assinatura antes de enviar.');
+    if (!signatureData.value) {
+        alert('Por favor, desenhe uma assinatura antes de enviar.');
+        console.error("Erro: Sem assinatura!");
+        e.preventDefault(); // Impede o envio apenas se a assinatura estiver vazia
+        return;
+    }
+
+    console.log("Formulário enviado com assinatura: " + signatureData.value.substring(0, 50) + "...");
+
+    var formData = new FormData(this);
+
+    $.ajax({
+        url: '{{ url_for("submit_receipt") }}',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            console.log("Formulário enviado com sucesso!");
+            if (response.status === 'success') {
+                window.location.href = response.redirect;
+            } else {
+                alert('Erro: ' + response.message);
             }
-        });
-    </script>
+        },
+        error: function(xhr, status, error) {
+            alert('Erro ao enviar o formulário ou documento: ' + error);
+            console.error("Erro no envio: " + error);
+        }
+    });
+
+    return false; // Impede o envio tradicional apenas para AJAX
+});
+
+</script>
 </body>
 </html>

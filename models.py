@@ -5,10 +5,12 @@ db = SQLAlchemy()
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    __table_args__ = {"extend_existing": True}  # Adicione esta linha
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)  # Flag para administrador
     is_active = db.Column(db.Boolean, default=True)  # Campo para indicar se o usuário está ativo
+    otp_secret = db.Column(db.String(32), nullable=True)  # Segredo para autenticação de dois fatores
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -48,5 +50,6 @@ class Receipt(db.Model):
     signature = db.Column(db.String(500), nullable=True)  # Assinatura desenhada (base64 ou URL)
     observations = db.Column(db.Text, nullable=True)
     submission_date = db.Column(db.DateTime, nullable=False, default=db.func.now())
+    document_path = db.Column(db.String (200), nullable=True)
 
     user = db.relationship('User', backref='receipts')

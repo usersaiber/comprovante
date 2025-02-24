@@ -1,108 +1,131 @@
 body {
-    font-family: 'Arial', sans-serif;
-    background-color: #FFFFFF; /* Branco como fundo principal */
+    font-family: 'Roboto', sans-serif;
+    background-color: #ececec; /* Cinza claro */
     margin: 0;
-    padding: 20px;
+    padding: 0;
 }
 
 .container {
-    max-width: 900px;
+    max-width: 1200px;
     margin: 0 auto;
 }
-
+f
 h1, h2 {
-    color: #0041FF; /* Azul principal da marca */
+    color: #2e3ecc; /* Verde esmeralda */
     text-align: center;
     margin-bottom: 20px;
+    font-weight: 700;
 }
 
 .card {
-    background-color: #FFFFFF; /* Fundo branco para cards */
+    background-color: #FFFFFF; /* Branco para cards */
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 65, 255, 0.1); /* Sombra sutil em azul */
-    border: 1px solid #0041FF; /* Borda em azul principal */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+    border: 1px solid #3e2ecc; /* Borda em verde esmeralda */
     padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 .table {
     border-radius: 8px;
     overflow: hidden;
     background-color: #FFFFFF; /* Fundo branco para tabelas */
-    border: 1px solid #0041FF; /* Borda em azul principal */
+    border: 1px solid #3e2ecc; /* Borda em verde esmeralda */
 }
 
 .table-striped tbody tr:nth-of-type(odd) {
-    background-color: #F8F9FA; /* Tom muito claro para listras, mantendo branco predominante */
+    background-color: #F8F9FA; /* Tom muito claro para listras */
 }
 
 .table-hover tbody tr:hover {
-    background-color: #E9ECEF; /* Tom leve para hover, mantendo elegância */
+    background-color: #E9ECEF; /* Tom leve para hover */
 }
 
 .table-dark {
-    background-color: #0041FF; /* Azul principal para cabeçalhos de tabelas */
+    background-color: #2e53cc; /* Verde esmeralda para cabeçalhos de tabelas */
     color: #FFFFFF; /* Texto branco para contraste */
 }
 
 .btn-primary {
-    background-color: #0041FF; /* Azul principal para botões primários */
+    background-color: #2e38cc; /* Verde esmeralda para botões primários */
     border: none;
     padding: 10px 20px;
     border-radius: 4px;
     color: #FFFFFF; /* Texto branco para contraste */
+    transition: all 0.3s ease;
 }
 
 .btn-primary:hover {
-    background-color: #0033CC; /* Tom mais escuro de azul para hover */
+    background-color: #2e60cc; /* Tom mais escuro de verde para hover */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn-secondary {
     background-color: #FFFFFF; /* Branco para botões secundários */
-    border: 1px solid #0041FF; /* Borda em azul principal */
-    color: #0041FF; /* Texto azul para contraste */
+    border: 1px solid #2e60cc; /* Borda em verde esmeralda */
+    color: #2e60cc; /* Texto verde para contraste */
+    transition: all 0.3s ease;
 }
 
 .btn-secondary:hover {
     background-color: #E9ECEF; /* Tom leve para hover */
-    border-color: #0033CC; /* Borda mais escura em hover */
+    border-color: #2e60cc; /* Borda mais escura em hover */
 }
 
 .btn-danger {
-    background-color: #FFFFFF; /* Branco para botões de saída (sair) */
-    border: 1px solid #0a2355; /* Azul marinho secundário, usado com moderação */
-    color: #0a2355; /* Texto azul marinho para contraste */
+    background-color: #000000; /* Branco para botões de saída/exclusão */
+    border: 1px solid #8a8a8a; /* Laranja para contraste */
+    color: #ffffff; /* Texto laranja para contraste */
+    transition: all 0.3s ease;
 }
 
 .btn-danger:hover {
-    background-color: #E9ECEF; /* Tom leve para hover */
-    border-color: #081A44; /* Tom mais escuro de azul marinho */
+    background-color: #b1b1b1; /* Tom leve para hover */
+    border-color: #ffffff; /* Tom mais escuro de laranja */
+}
+
+.btn-success {
+    background-color: #2e60cc; /* Verde mais escuro para botões de sucesso (editar) */
+    border: none;
+    color: #FFFFFF;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    background-color: #2e60cc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .text-muted {
     font-size: 0.9em;
-    color: #6C757D; /* Cinza escuro para textos secundários, mantendo contraste com branco */
+    color: #4A4A4A; /* Cinza escuro para textos secundários */
 }
 
 .form-label {
-    font-weight: bold;
-    color: #0041FF; /* Azul principal para labels */
+    font-weight: 600;
+    color: #2e60cc; /* Verde esmeralda para labels */
 }
 
 .form-control, .form-select {
-    border: 1px solid #0041FF; /* Borda em azul principal */
+    border: 1px solid #2e60cc; /* Borda em verde esmeralda */
     border-radius: 4px;
     background-color: #FFFFFF; /* Fundo branco para campos */
+    transition: all 0.3s ease;
 }
 
 .form-control:focus, .form-select:focus {
-    border-color: #0033CC; /* Tom mais escuro em foco */
-    box-shadow: 0 0 5px rgba(0, 65, 255, 0.3); /* Sombra sutil em azul */
+    border-color: #2e60cc; /* Tom mais escuro em foco */
+    box-shadow: 0 0 5px rgba(46, 204, 113, 0.3); /* Sombra sutil em verde */
 }
 
 .alert-success {
-    background-color: #D4EDDA; /* Tom verde claro para mensagens de sucesso */
+    background-color: #D4F1D9; /* Tom verde claro para mensagens de sucesso */
     border-color: #C3E6CB;
-    color: #155724;
+    color: #1e2c7e;
 }
 
 .alert-danger {
@@ -110,25 +133,13 @@ h1, h2 {
     border-color: #F5C6CB;
     color: #721C24;
 }
-img.img-fluid {
-    margin-bottom: 15px;
-    padding: 10px;
-    background-color: #FFFFFF; /* Fundo branco para o logotipo, se necessário */
-}
 
-.text-muted small {
-    font-size: 0.8em;
-    color: #6C757D; /* Cinza escuro para manter elegância */
-}
-
-.text-muted strong {
-    color: #0041FF; /* Azul principal para destacar seu nome */
-}
 .signature-pad {
-    border: 1px solid #0041FF;
+    border: 1px solid #2e58cc;
     background-color: #FFFFFF;
     border-radius: 4px;
     margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .signature-pad canvas {
@@ -137,6 +148,82 @@ img.img-fluid {
 }
 
 .signature-pad img {
-    border: 1px solid #0041FF;
+    border: 1px solid #2e58cc;
     border-radius: 4px;
+}
+
+.sidebar {
+    height: 100%;
+    width: 250px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: #F5F6FA; /* Cinza claro */
+    padding-top: 20px;
+    border-right: 1px solid #2e60cc; /* Verde esmeralda */
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.sidebar a {
+    padding: 15px 20px;
+    text-decoration: none;
+    font-size: 16px;
+    color: #333333; /* Preto para contraste */
+    display: block;
+    font-family: 'Roboto', sans-serif;
+}
+
+.sidebar a:hover, .sidebar a.active {
+    background-color: #2e60cc; /* Verde esmeralda */
+    color: #FFFFFF; /* Branco para contraste */
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.content {
+    margin-left: 250px;
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        box-shadow: none;
+    }
+    .content {
+        margin-left: 0;
+        padding: 10px;
+    }
+    .sidebar a {
+        padding: 10px 15px;
+        font-size: 14px;
+    }
+    .card, .table {
+        width: 100% !important;
+    }
+    .form-control, .form-select {
+        font-size: 14px;
+    }
+    h1, h2 {
+        font-size: 20px;
+    }
+    .btn {
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+    .sidebar {
+        background-color: #FFFFFF; /* Fundo branco em mobile para simplicidade */
+    }
+}
+
+/* Dashboard de Estatísticas (opcional, para implementar mais tarde) */
+.chart-container {
+    position: relative;
+    margin: auto;
+    width: 100%;
+    max-width: 600px;
 }
