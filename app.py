@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file, json, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify, make_response
+from werkzeug.utils import secure_filename
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from models import db, User, Receipt, Name, Sector
 from datetime import datetime
@@ -12,17 +13,47 @@ import io
 import csv
 import smtplib
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import pyotp
-from flask import render_template, request, redirect, url_for, flash
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+from dotenv import load_dotenv
+import logging
+import ssl
+from functools import wraps
 
+app = Flask(__name__)
+load_dotenv()
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'Login'
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('Acesso negado. Apenas administradores podem acessar essa página.', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Carregar variáveis de ambiente
+load_dotenv()
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///receipts.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'sua_chave_secreta_aqui'  # Substitua por uma chave segura
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Configurar para seu servidor de e-mail
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'sua_chave_secreta_aqui')
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'mail.mantomac.com.br')
 app.config['MAIL_PORT'] = 587
-app.config['MAIL_USERNAME'] = 'seu_email@gmail.com'  # Substitua pelo seu e-mail
-app.config['MAIL_PASSWORD'] = 'sua_senha_app'  # Use uma senha de aplicativo ou 2FA para Gmail
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME', 'cleiton.teixeira@mantomac.com.br')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD', '89198729')
+app.config['UPLOAD_FOLDER'] = os.path.join(app.static_folder, 'documents')
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
 
 db.init_app(app)
 
@@ -33,9 +64,9 @@ login_manager.login_view = 'login'
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
-# Função de envio de e-mail (exemplo para Gmail)
+# Função de envio de e-mail
 def send_email(to, subject, body):
     msg = MIMEText(body)
     msg['Subject'] = subject
@@ -47,19 +78,17 @@ def send_email(to, subject, body):
         server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
         server.send_message(msg)
 
-# Rotas existentes (mantidas como antes, com ajustes para novas funcionalidades)...
-
 @app.route('/')
 @login_required
 def index():
     try:
-        names = Name.query.all()  # Nomes disponíveis
-        sectors = Sector.query.all()  # Setores disponíveis
-        print(f"Nomes encontrados: {len(names)}, Setores encontrados: {len(sectors)}")  # Depuração
+        names = Name.query.all()
+        sectors = Sector.query.all()
+        logger.info(f"Nomes encontrados: {len(names)}, Setores encontrados: {len(sectors)}")
         return render_template('index.html', names=names, sectors=sectors)
     except Exception as e:
         flash(f'Erro ao carregar o formulário: {str(e)}', 'error')
-        app.logger.error(f"Erro na rota /: {str(e)}")
+        logger.error(f"Erro na rota /: {str(e)}")
         return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -70,7 +99,6 @@ def login():
         user = User.query.filter_by(username=username).first()
 
         if user and user.check_password(password):
-            # Verificar 2FA, se configurado
             if user.otp_secret:
                 return redirect(url_for('setup_2fa'))
             login_user(user)
@@ -78,7 +106,6 @@ def login():
             return redirect(url_for('index'))
         else:
             flash('Usuário ou senha inválidos.', 'error')
-    
     return render_template('login.html')
 
 @app.route('/logout')
@@ -88,11 +115,16 @@ def logout():
     flash('Você foi desconectado.', 'success')
     return redirect(url_for('login'))
 
+ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'png'}
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @app.route('/submit_receipt', methods=['POST'])
 @login_required
 def submit_receipt():
     try:
-        print("Recebendo dados do formulário...")
+        logger.info("Recebendo dados do formulário...")
         name_id = request.form.get('name')
         sector_origin_id = request.form.get('sector_origin')
         sector_destination_id = request.form.get('sector_destination')
@@ -100,72 +132,103 @@ def submit_receipt():
         authorized = 'authorized' in request.form
         signature = request.form.get('signature', '')
         observations = request.form.get('observations', '')
+        document = request.files.get('document')
 
-        print(f"name_id: {name_id}, sector_origin_id: {sector_origin_id}, sector_destination_id: {sector_destination_id}, amount: {amount}, authorized: {authorized}, signature: {signature[:50]}..., observations: {observations}")
+        logger.info(f"name_id: {name_id}, sector_origin_id: {sector_origin_id}, sector_destination_id: {sector_destination_id}, amount: {amount}, authorized: {authorized}, signature: {signature[:50]}..., observations: {observations}")
 
         if not all([name_id, sector_origin_id, sector_destination_id, amount]):
             raise ValueError("Campos obrigatórios ausentes")
 
+        try:
+            amount = float(amount)
+        except ValueError:
+            raise ValueError("O campo 'amount' deve ser um número válido")
+
         name = Name.query.get_or_404(name_id)
         sector_origin = Sector.query.get_or_404(sector_origin_id)
         sector_destination = Sector.query.get_or_404(sector_destination_id)
-        amount = float(amount)
 
         new_receipt = Receipt(
             user_id=current_user.id,
-            name=name.name,
-            sector_origin=sector_origin.name,
-            sector_destination=sector_destination.name,
+            name_id=name_id,
+            sector_origin_id=sector_origin_id,
+            sector_destination_id=sector_destination_id,
             amount=amount,
             authorized=authorized,
             signature=signature,
             observations=observations
         )
-        db.session.add(new_receipt)
 
-        # Lidar com o upload de documentos
-        if 'document' in request.files and request.files['document'].filename:
-            document = request.files['document']
-            if document and document.filename:
-                document_path = os.path.join(app.static_folder, 'documents', document.filename)
-                os.makedirs(os.path.join(app.static_folder, 'documents'), exist_ok=True)
-                document.save(document_path)
-                setattr(new_receipt, 'document_path', document_path)  # Usar setattr para setar o atributo
-                print(f"Documento salvo em: {document_path}")
+        # Handle document upload only if a valid document is provided
+        if document and document.filename:
+            if not allowed_file(document.filename):
+                flash('Tipo de arquivo não permitido.', 'danger')
+                return jsonify({'status': 'error', 'message': 'Tipo de arquivo não permitido'}), 400
+            filename = secure_filename(document.filename)
+            document_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            logger.info(f"Tentando salvar em: {document_path}")
+            document.save(document_path)
+            new_receipt.document_path = f'documents/{filename}'
+        else:
+            new_receipt.document_path = None  # No document uploaded
+
+        db.session.add(new_receipt)
         db.session.commit()
 
-        # Notificação por e-mail
-        admin_email = 'admin@mantomac.com.br'
+        admin_email = app.config['MAIL_USERNAME']
         subject = 'Novo Comprovante Submetido - Mantomac'
         body = f"Um novo comprovante foi submetido por {current_user.username} na Mantomac:\n\n" \
                f"Nome: {name.name}\nValor: R${amount:.2f}\nData: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         send_email(admin_email, subject, body)
 
+        upload_folder = app.config['UPLOAD_FOLDER']
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+
         flash('Comprovante submetido com sucesso!', 'success')
         return jsonify({'status': 'success', 'redirect': url_for('index')})
     except Exception as e:
-        flash(f'Erro ao submeter o comprovante: {str(e)}', 'error')
-        app.logger.error(f"Erro na rota submit_receipt: {str(e)}")
-        return jsonify({'status': 'error', 'message': str(e)}), 400
-
+        logger.error(f"Erro ao submeter comprovante: {e}")
+        flash(f'Erro ao submeter comprovante: {str(e)}', 'danger')
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    
 @app.route('/admin_panel')
 @login_required
+@admin_required
 def admin_panel():
-    if not current_user.is_admin:
-        flash('Acesso negado. Apenas administradores podem acessar este painel.', 'error')
-        return redirect(url_for('index'))
+    sectors = Sector.query.all()  # Busca todos os setores
+    names = Name.query.all()      # Busca todos os nomes
+    receipts = Receipt.query.all()
+    users = User.query.all()  # Garantir que users seja passado
+    return render_template('admin_panel.html', receipts=receipts, users=users, sectors=sectors, names=names)
     
-    try:
-        receipts = Receipt.query.all()
-        users = User.query.all()
-        names = Name.query.all()  # ✅ Certifique-se de que esta linha existe
-        sectors = Sector.query.all()
-        return render_template('admin_panel.html', receipts=receipts, users=users, names=names, sectors=sectors)
-    except Exception as e:
-        flash(f'Erro ao carregar o painel administrativo: {str(e)}', 'error')
-        return redirect(url_for('index'))
 
+@app.route('/edit_receipt/<int:receipt_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_receipt(receipt_id):
+    receipt = Receipt.query.get_or_404(receipt_id)
+    sectors = Sector.query.all()
+    names = Name.query.all()
+    if request.method == 'POST':
+        receipt.name_id = request.form.get('name')
+        receipt.sector_origin_id = request.form.get('sector_origin')
+        receipt.sector_destination_id = request.form.get('sector_destination')
+        receipt.amount = float(request.form.get('amount'))
+        receipt.authorized = 'authorized' in request.form
+        receipt.signature = request.form.get('signature', receipt.signature)
+        receipt.observations = request.form.get('observations', receipt.observations)
+        document = request.files.get('document')
+        if document and document.filename:
+            filename = secure_filename(document.filename)
+            document_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(document.filename))
 
+            document.save(document_path)
+            receipt.document_path = f'documents/{filename}'
+        db.session.commit()
+        flash('Comprovante atualizado com sucesso!', 'success')
+        return redirect(url_for('admin_panel'))
+    return render_template('edit_receipt.html', receipt=receipt, sectors=sectors, names=names)
 
 @app.route('/filter_receipts', methods=['GET'])
 @login_required
@@ -200,35 +263,36 @@ def filter_receipts():
 
 @app.route('/export_csv')
 @login_required
+@admin_required
 def export_csv():
-    if not current_user.is_admin:
-        flash('Acesso negado. Apenas administradores podem exportar para CSV.', 'error')
-        return redirect(url_for('admin_panel'))
-    
     receipts = Receipt.query.all()
     output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['ID', 'Usuário', 'Nome', 'Setor Origem', 'Setor Destino', 'Valor (R$)', 'Autorizado', 'Assinatura', 'Data'])
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+    
+    # Escrever o cabeçalho
+    writer.writerow(['ID', 'Usuário', 'Nome', 'Setor Origem', 'Setor Destino', 'Valor (R$)', 'Autorizado', 'Assinatura', 'Data', 'Documento'])
+    
+    # Escrever os dados
     for receipt in receipts:
         user = User.query.get(receipt.user_id)
-        writer.writerow([
-            receipt.id,
-            user.username if user else 'Usuário não encontrado',
-            receipt.name,
-            receipt.sector_origin,
-            receipt.sector_destination,
-            f'{receipt.amount:.2f}',
-            'Sim' if receipt.authorized else 'Não',
-            receipt.signature or 'Não informada',
-            receipt.submission_date.strftime('%d/%m/%Y %H:%M') if receipt.submission_date else 'Data não informada'
-        ])
+        user_name = user.username if user else 'Usuário não encontrado'
+        receipt_name = receipt.name.name if receipt.name else 'Não informado'
+        sector_origin = receipt.sector_origin.name if receipt.sector_origin else 'Não informado'
+        sector_destination = receipt.sector_destination.name if receipt.sector_destination else 'Não informado'
+        amount = f'{receipt.amount:.2f}' if receipt.amount is not None else '0.00'
+        authorized = 'Sim' if receipt.authorized else 'Não'
+        signature = 'Sim' if receipt.signature else 'Não'
+        submission_date = receipt.submission_date.strftime('%d/%m/%Y %H:%M') if receipt.submission_date else 'Não informada'
+        document = receipt.document_path if receipt.document_path else 'Nenhum documento anexado'
+        
+        writer.writerow([receipt.id, user_name, receipt_name, sector_origin, sector_destination, amount, authorized, signature, submission_date, document])
     
     output.seek(0)
     return send_file(
         io.BytesIO(output.getvalue().encode('utf-8')),
+        mimetype='text/csv',
         as_attachment=True,
-        download_name='comprovantes_mantomac.csv',
-        mimetype='text/csv'
+        download_name='comprovantes.csv'  # Corrigido para download_name
     )
 
 @app.route('/edit_name/<int:name_id>', methods=['GET', 'POST'])
@@ -253,15 +317,15 @@ def edit_sector(sector_id):
         flash('Acesso negado. Apenas administradores podem editar setores.', 'error')
         return redirect(url_for('admin_panel'))
 
-    sector = Sector.query.get_or_404(sector_id)  # Busca o setor pelo ID no banco de dados
+    sector = Sector.query.get_or_404(sector_id)
 
     if request.method == 'POST':
-        sector.name = request.form['name']  # Atualiza o nome do setor com o valor do formulário
-        db.session.commit()  # Salva as alterações no banco de dados
+        sector.name = request.form['name']
+        db.session.commit()
         flash("Setor atualizado com sucesso!", "success")
-        return redirect(url_for('admin_panel'))  # Redireciona para o painel do admin
+        return redirect(url_for('admin_panel'))
 
-    return render_template('edit_sector.html', sector=sector)  # Renderiza o formulário para edição
+    return render_template('edit_sector.html', sector=sector)
 
 @app.route('/user/edit/<int:user_id>', methods=['GET', 'POST'])
 @login_required
@@ -270,18 +334,17 @@ def edit_user(user_id):
         flash('Acesso negado. Apenas administradores podem editar usuários.', 'error')
         return redirect(url_for('admin_panel'))
 
-    user = User.query.get_or_404(user_id)  # Obtém o usuário pelo ID
+    user = User.query.get_or_404(user_id)
 
     if request.method == 'POST':
         user.username = request.form['username']
         if request.form['password']:
-            user.set_password(request.form['password'])  # Atualiza a senha se fornecida
+            user.set_password(request.form['password'])
         db.session.commit()
         flash('Usuário atualizado com sucesso!', 'success')
-        return redirect(url_for('admin_panel'))  # Retorna ao painel do admin
+        return redirect(url_for('admin_panel'))
 
     return render_template('edit_user.html', user=user)
-
 
 @app.route('/2fa_setup', methods=['GET', 'POST'])
 @login_required
@@ -294,19 +357,6 @@ def setup_2fa():
         uri = pyotp.totp.TOTP(secret).provisioning_uri(user.username, issuer_name="Mantomac Comprovantes")
         return render_template('2fa_setup.html', uri=uri, secret=secret)
     return render_template('2fa_setup.html')
-
-@app.route('/2fa_verify', methods=['POST'])
-@login_required
-def verify_2fa():
-    secret = current_user.otp_secret
-    code = request.form['code']
-    if pyotp.TOTP(secret).verify(code):
-        flash('Autenticação de dois fatores configurada com sucesso!', 'success')
-        return redirect(url_for('index'))
-    flash('Código inválido. Tente novamente.', 'error')
-    return redirect(url_for('setup_2fa'))
-
-# Rotas de exclusão e criação (mantidas como antes)...
 
 @app.route('/create_name', methods=['POST'])
 @login_required
@@ -344,30 +394,48 @@ def create_sector():
 
 @app.route('/create_user', methods=['POST'])
 @login_required
+@admin_required
 def create_user():
-    if not current_user.is_admin:
-        flash('Acesso negado. Apenas administradores podem criar usuários.', 'error')
-        return redirect(url_for('index'))
-    
-    username = request.form['username']
-    password = request.form['password']
+    username = request.form.get('username')
+    password = request.form.get('password')
+    is_admin = request.form.get('is_admin') in ['true', 'on']  # Checkbox marcado retorna "on" ou "true"
+    is_active = request.form.get('is_active') in ['true', 'on']  # Checkbox marcado retorna "on" ou "true"
+
+    if not username:
+        flash('Usuário é obrigatório!', 'danger')
+        return redirect(url_for('admin_panel'))
     if User.query.filter_by(username=username).first():
-        flash('Usuário já existe.', 'error')
-    else:
-        new_user = User(username=username)
-        new_user.set_password(password)
-        db.session.add(new_user)
-        db.session.commit()
-        flash('Usuário criado com sucesso!', 'success')
+        flash('Usuário já existe!', 'danger')
+        return redirect(url_for('admin_panel'))
+
+    new_user = User(username=username, is_admin=is_admin, is_active=is_active)
+    if password:  # Apenas define senha se fornecida
+        new_user.set_password(password)  # Assumindo que set_password está implementado
+    db.session.add(new_user)
+    db.session.commit()
+    flash('Usuário criado com sucesso!', 'success')
+    return redirect(url_for('admin_panel'))
+
+@app.route('/delete_receipt/<int:receipt_id>', methods=['POST'])
+@login_required
+def delete_receipt(receipt_id):
+    if not current_user.is_admin:
+        flash('Acesso negado. Apenas administradores podem excluir comprovantes.', 'error')
+        return redirect(url_for('admin_panel'))
+    
+    receipt = Receipt.query.get_or_404(receipt_id)
+    logger.info(f"Deletando comprovante ID: {receipt.id}, Nome: {receipt.name}")
+    db.session.delete(receipt)
+    db.session.commit()
+    flash('Comprovante excluído com sucesso!', 'success')
     return redirect(url_for('admin_panel'))
 
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
 @login_required
 def delete_user(user_id):
     if not current_user.is_admin:
-        flash('Acesso negado. Apenas administradores podem excluir usuários.', 'error')
+        flash('Acesso negado.', 'error')
         return redirect(url_for('admin_panel'))
-    
     user = User.query.get_or_404(user_id)
     db.session.delete(user)
     db.session.commit()
@@ -400,131 +468,98 @@ def delete_sector(sector_id):
     flash('Setor excluído com sucesso!', 'success')
     return redirect(url_for('admin_panel'))
 
-@app.route('/delete_receipt/<int:receipt_id>', methods=['POST'])
-@login_required
-def delete_receipt(receipt_id):
-    if not current_user.is_admin:
-        flash('Acesso negado. Apenas administradores podem excluir comprovantes.', 'error')
-        return redirect(url_for('admin_panel'))
-    
-    receipt = Receipt.query.get_or_404(receipt_id)
-    db.session.delete(receipt)
-    db.session.commit()
-    flash('Comprovante excluído com sucesso!', 'success')
-    return redirect(url_for('admin_panel'))
-
 @app.route('/download_pdf')
 @login_required
+@admin_required
 def download_pdf():
-    if not current_user.is_admin:
-        flash('Acesso negado. Apenas administradores podem baixar o relatório.', 'error')
-        return redirect(url_for('admin_panel'))
-    
-    # Criar o PDF
-    pdf_buffer = generate_pdf()
-    
-    # Enviar o PDF como arquivo para download
-    return send_file(
-        pdf_buffer,
-        as_attachment=True,
-        download_name='relatorio_comprovantes_mantomac.pdf',
-        mimetype='application/pdf'
-    )
+    buffer = generate_pdf()
+    response = make_response(buffer.getvalue())
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'attachment; filename=relatorio_comprovantes.pdf'
+    return response
 
 def generate_pdf():
-    # Criar um buffer para o PDF em modo retrato (ajustado para legibilidade)
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72)
     elements = []
 
-    # Estilos
     styles = getSampleStyleSheet()
     normal_style = styles['Normal']
     title_style = styles['Heading1']
-    title_style.textColor = colors.HexColor('#0000b8')  # Nova cor primária (verde esmeralda)
+    title_style.textColor = colors.HexColor('#0041FF')  # Azul da Mantomac
+    title_style.alignment = 1  # Centralizar
+    title_style.fontSize = 14  # Reduzido para 14pt
+    normal_style.fontName = 'Roboto' if 'Roboto' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'
+    normal_style.alignment = 1  # Centralizar
+    normal_style.fontSize = 10  # Reduzido para 10pt
 
-    # Adicionar logotipo
+    # Logo
     logo_path = os.path.join(app.static_folder, 'logo.jpg')
     if os.path.exists(logo_path):
-        img = Image(logo_path, width=150, height=75)  # Ajuste o tamanho conforme necessário
-        elements.append(img)
+        logo = Image(logo_path, width=150, height=75)
+        logo.hAlign = 'CENTER'
+        elements.append(logo)
     else:
         elements.append(Paragraph("Logotipo não encontrado", title_style))
+    elements.append(Paragraph("<br/>", normal_style))
 
-    # Título do relatório
+    # Título e informações
     elements.append(Paragraph("Relatório de Comprovantes de Recebimento - Mantomac", title_style))
     elements.append(Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}", normal_style))
-    elements.append(Paragraph(f"Gerenciado por Cleiton Teixeira - TI Mantomac", normal_style))
+    elements.append(Paragraph("Gerenciado por Cleiton Teixeira - TI Mantomac", normal_style))
     elements.append(Paragraph("<br/><br/>", normal_style))
 
-    # Dados dos comprovantes
+    # Tabela de comprovantes
     receipts = Receipt.query.all()
     if receipts:
         data = [['ID', 'Usuário', 'Nome', 'Setor Origem', 'Setor Destino', 'Valor (R$)', 'Autorizado', 'Assinatura', 'Data']]
         for receipt in receipts:
             user = User.query.get(receipt.user_id)
-            # Verificar e corrigir os campos "ID", "Usuário" e "Nome"
             receipt_id = str(receipt.id) if receipt.id else 'N/A'
             user_name = user.username if user else 'Usuário não encontrado'
-            receipt_name = receipt.name if receipt.name else 'Não informado'
+            receipt_name = receipt.name.name if receipt.name else 'Não informado'
+            receipt_sector_origin = receipt.sector_origin.name if receipt.sector_origin else 'Não informado'
+            receipt_sector_destination = receipt.sector_destination.name if receipt.sector_destination else 'Não informado'
 
-            # Processar a assinatura base64 para imagem
-            signature_image = None
-            if receipt.signature and receipt.signature.startswith('data:image/png;base64,'):
-                try:
-                    # Extrair a parte base64 da string (remover "data:image/png;base64,")
-                    base64_string = receipt.signature.split(',')[1]
-                    # Decodificar base64 para bytes
-                    img_data = base64.b64decode(base64_string)
-                    # Criar um buffer temporário para a imagem
-                    img_buffer = io.BytesIO(img_data)
-                    # Criar uma imagem para o reportlab
-                    signature_image = Image(img_buffer, width=100, height=50)  # Ajuste o tamanho para melhor visualização
-                except Exception as e:
-                    print(f"Erro ao processar assinatura: {e}")
-                    signature_image = Paragraph("Assinatura não processada", normal_style)
-            elif receipt.signature:
-                signature_image = Paragraph(receipt.signature or 'Não informada', normal_style)
-            else:
-                signature_image = Paragraph('Não informada', normal_style)
+            signature_content = Paragraph("Ver Assinatura no Sistema", normal_style)
 
             data.append([
-                receipt_id,  # Corrigido para garantir que o ID não seja None
-                user_name,  # Corrigido para garantir que o usuário seja exibido
-                receipt_name,  # Corrigido para garantir que o nome não seja None
-                receipt.sector_origin or 'Não informado',
-                receipt.sector_destination or 'Não informado',
-                f'{receipt.amount:.2f}' if receipt.amount else '0.00',
+                receipt_id,
+                user_name,
+                receipt_name,
+                receipt_sector_origin,
+                receipt_sector_destination,
+                f'R${receipt.amount:.2f}' if receipt.amount is not None else 'R$0.00',
                 'Sim' if receipt.authorized else 'Não',
-                signature_image,  # Usar a imagem processada ou texto
+                signature_content,
                 receipt.submission_date.strftime('%d/%m/%Y %H:%M') if receipt.submission_date else 'Data não informada'
             ])
 
-        # Criar tabela com colunas ajustadas para modo retrato
-        table = Table(data, colWidths=[40, 80, 80, 80, 80, 60, 60, 120, 70])  # Ajuste os tamanhos para legibilidade
+        table = Table(data, colWidths=[30, 70, 100, 80, 80, 60, 60, 100, 90])
         table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2ECC71')),  # Nova cor primária (verde esmeralda)
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Texto branco no cabeçalho
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0041FF')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Roboto'),  # Nova fonte moderna
-            ('FONTSIZE', (0, 0), (-1, -1), 12),  # Tamanho de fonte ajustado
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),  # Mais espaço
+            ('FONTNAME', (0, 0), (-1, -1), 'Roboto' if 'Roboto' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),  # Cabeçalho reduzido para 10pt
+            ('FONTSIZE', (0, 1), (-1, -1), 8),  # Corpo da tabela reduzido para 8pt
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),  # Linhas em branco
-            ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),  # Texto preto para legibilidade
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#2ECC71')),  # Grade em verde esmeralda
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')  # Alinhamento vertical no meio
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#0a2355')),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#0041FF')),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#F5F6FA'), colors.white])
         ]))
         elements.append(table)
     else:
         elements.append(Paragraph("Nenhum comprovante encontrado.", normal_style))
 
-    # Gerar o PDF
     doc.build(elements)
     buffer.seek(0)
     return buffer
 
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()  # Cria as tabelas no banco de dados
-    app.run(debug=True, host='0.0.0.0', port=5000)
+        db.create_all()
+    app.run(host='0.0.0.0', port=5000)

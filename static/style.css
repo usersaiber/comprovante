@@ -1,6 +1,6 @@
 body {
     font-family: 'Roboto', sans-serif;
-    background-color: #ececec; /* Cinza claro */
+    background-color: #ECECEC; /* Mantive o cinza claro */
     margin: 0;
     padding: 0;
 }
@@ -8,22 +8,24 @@ body {
 .container {
     max-width: 1200px;
     margin: 0 auto;
+    padding: 0 15px; /* Adicionei espaçamento lateral */
 }
-f
+
 h1, h2 {
-    color: #2e3ecc; /* Verde esmeralda */
+    color: #2E3ECC; /* Verde esmeralda ajustado */
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 30px; /* Mais espaço para separação */
     font-weight: 700;
 }
 
 .card {
-    background-color: #FFFFFF; /* Branco para cards */
+    background-color: #FFFFFF;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra sutil */
-    border: 1px solid #3e2ecc; /* Borda em verde esmeralda */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #2E3ECC; /* Borda em verde esmeralda */
     padding: 20px;
     transition: all 0.3s ease;
+    margin-bottom: 30px; /* Espaço entre os cards */
 }
 
 .card:hover {
@@ -33,109 +35,115 @@ h1, h2 {
 .table {
     border-radius: 8px;
     overflow: hidden;
-    background-color: #FFFFFF; /* Fundo branco para tabelas */
-    border: 1px solid #3e2ecc; /* Borda em verde esmeralda */
+    background-color: #FFFFFF;
+    border: 1px solid #2E3ECC;
 }
 
 .table-striped tbody tr:nth-of-type(odd) {
-    background-color: #F8F9FA; /* Tom muito claro para listras */
+    background-color: #F8F9FA; /* Listra clara */
 }
 
 .table-hover tbody tr:hover {
-    background-color: #E9ECEF; /* Tom leve para hover */
+    background-color: #E9ECEF; /* Hover suave */
 }
 
 .table-dark {
-    background-color: #2e53cc; /* Verde esmeralda para cabeçalhos de tabelas */
-    color: #FFFFFF; /* Texto branco para contraste */
+    background-color: #2E3ECC; /* Verde esmeralda no cabeçalho */
+    color: #FFFFFF;
 }
 
 .btn-primary {
-    background-color: #2e38cc; /* Verde esmeralda para botões primários */
+    background-color: #2E3ECC;
     border: none;
     padding: 10px 20px;
     border-radius: 4px;
-    color: #FFFFFF; /* Texto branco para contraste */
+    color: #FFFFFF;
     transition: all 0.3s ease;
 }
 
 .btn-primary:hover {
-    background-color: #2e60cc; /* Tom mais escuro de verde para hover */
+    background-color: #1F2A99; /* Tom mais escuro para hover */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn-secondary {
-    background-color: #FFFFFF; /* Branco para botões secundários */
-    border: 1px solid #2e60cc; /* Borda em verde esmeralda */
-    color: #2e60cc; /* Texto verde para contraste */
+    background-color: #FFFFFF;
+    border: 1px solid #2E3ECC;
+    color: #2E3ECC;
+    padding: 10px 20px;
+    border-radius: 4px;
     transition: all 0.3s ease;
 }
 
 .btn-secondary:hover {
-    background-color: #E9ECEF; /* Tom leve para hover */
-    border-color: #2e60cc; /* Borda mais escura em hover */
+    background-color: #E9ECEF;
+    border-color: #1F2A99;
 }
 
 .btn-danger {
-    background-color: #000000; /* Branco para botões de saída/exclusão */
-    border: 1px solid #8a8a8a; /* Laranja para contraste */
-    color: #ffffff; /* Texto laranja para contraste */
+    background-color: #FF0000; /* Vermelho para ações perigosas */
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    color: #FFFFFF;
     transition: all 0.3s ease;
 }
 
 .btn-danger:hover {
-    background-color: #b1b1b1; /* Tom leve para hover */
-    border-color: #ffffff; /* Tom mais escuro de laranja */
+    background-color: #CC0000; /* Vermelho mais escuro */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn-success {
-    background-color: #2e60cc; /* Verde mais escuro para botões de sucesso (editar) */
+    background-color: #28A745; /* Verde para sucesso */
     border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
     color: #FFFFFF;
     transition: all 0.3s ease;
 }
 
 .btn-success:hover {
-    background-color: #2e60cc;
+    background-color: #218838; /* Verde mais escuro */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .text-muted {
     font-size: 0.9em;
-    color: #4A4A4A; /* Cinza escuro para textos secundários */
+    color: #4A4A4A;
 }
 
 .form-label {
     font-weight: 600;
-    color: #2e60cc; /* Verde esmeralda para labels */
+    color: #2E3ECC;
 }
 
 .form-control, .form-select {
-    border: 1px solid #2e60cc; /* Borda em verde esmeralda */
+    border: 1px solid #2E3ECC;
     border-radius: 4px;
-    background-color: #FFFFFF; /* Fundo branco para campos */
+    background-color: #FFFFFF;
     transition: all 0.3s ease;
 }
 
 .form-control:focus, .form-select:focus {
-    border-color: #2e60cc; /* Tom mais escuro em foco */
-    box-shadow: 0 0 5px rgba(46, 204, 113, 0.3); /* Sombra sutil em verde */
+    border-color: #1F2A99; /* Tom mais escuro em foco */
+    box-shadow: 0 0 5px rgba(46, 62, 204, 0.3); /* Sombra sutil */
 }
 
 .alert-success {
-    background-color: #D4F1D9; /* Tom verde claro para mensagens de sucesso */
+    background-color: #D4F1D9;
     border-color: #C3E6CB;
-    color: #1e2c7e;
+    color: #155724;
 }
 
 .alert-danger {
-    background-color: #F8D7DA; /* Tom vermelho claro para mensagens de erro */
+    background-color: #F8D7DA;
     border-color: #F5C6CB;
     color: #721C24;
 }
 
 .signature-pad {
-    border: 1px solid #2e58cc;
+    border: 1px solid #2E3ECC;
     background-color: #FFFFFF;
     border-radius: 4px;
     margin-bottom: 10px;
@@ -148,19 +156,19 @@ h1, h2 {
 }
 
 .signature-pad img {
-    border: 1px solid #2e58cc;
+    border: 1px solid #2E3ECC;
     border-radius: 4px;
 }
 
 .sidebar {
-    height: 100%;
+    height: 100vh;
     width: 250px;
     position: fixed;
     top: 0;
     left: 0;
-    background-color: #F5F6FA; /* Cinza claro */
+    background-color: #F5F6FA;
     padding-top: 20px;
-    border-right: 1px solid #2e60cc; /* Verde esmeralda */
+    border-right: 1px solid #2E3ECC;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
 }
@@ -169,34 +177,41 @@ h1, h2 {
     padding: 15px 20px;
     text-decoration: none;
     font-size: 16px;
-    color: #333333; /* Preto para contraste */
+    color: #333333;
     display: block;
-    font-family: 'Roboto', sans-serif;
+    transition: all 0.3s ease;
 }
 
 .sidebar a:hover, .sidebar a.active {
-    background-color: #2e60cc; /* Verde esmeralda */
-    color: #FFFFFF; /* Branco para contraste */
+    background-color: #2E3ECC;
+    color: #FFFFFF;
     border-radius: 4px;
-    transition: all 0.3s ease;
 }
 
 .content {
     margin-left: 250px;
-    padding: 20px;
+    padding: 30px; /* Mais espaço interno */
     transition: all 0.3s ease;
 }
 
 @media (max-width: 768px) {
+    .container{
+        padding: 10px;
+    }
+    .card {
+        margin-bottom: 20px;
+    }
+
     .sidebar {
         width: 100%;
         height: auto;
         position: relative;
         box-shadow: none;
+        padding: 10px;
     }
     .content {
         margin-left: 0;
-        padding: 10px;
+        padding: 15px;
     }
     .sidebar a {
         padding: 10px 15px;
@@ -215,12 +230,8 @@ h1, h2 {
         font-size: 14px;
         padding: 8px 16px;
     }
-    .sidebar {
-        background-color: #FFFFFF; /* Fundo branco em mobile para simplicidade */
-    }
 }
 
-/* Dashboard de Estatísticas (opcional, para implementar mais tarde) */
 .chart-container {
     position: relative;
     margin: auto;
