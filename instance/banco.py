@@ -1,21 +1,20 @@
-import sqlite3
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from app import app, db
+from models import User, Receipt, Name, Sector
 
-# Conectar ao banco de dados
-conn = sqlite3.connect('receipts.db')
-cursor = conn.cursor()
-
-# Verificar as colunas da tabela 'receipt'
-cursor.execute("PRAGMA table_info(receipt);")
-columns = cursor.fetchall()
-
-# Verificar se a coluna 'document_path' já existe
-if not any(col[1] == 'document_path' for col in columns):
-    # Adicionar a coluna 'document_path' se não existir
-    cursor.execute("ALTER TABLE receipt ADD COLUMN document_path TEXT;")
-    print("Coluna 'document_path' adicionada com sucesso.")
-else:
-    print("A coluna 'document_path' já existe.")
-
-# Salvar as alterações e fechar a conexão
-conn.commit()
-conn.close()
+with app.app_context():
+    if os.path.exists('receipts.db'):
+        os.remove('receipts.db')
+    db.create_all()
+    admin = User(username='cleiton', is_admin=True, is_active=True)
+    admin.set_password('89198729')
+    db.session.add(admin)
+    db.session.add(Name(name='Cleiton Teixeira'))
+    db.session.add(Name(name='Jéahn'))
+    db.session.add(Sector(name='Equipamentos'))
+    db.session.add(Sector(name='Rental'))
+    db.session.add(Sector(name='Financeiro'))
+    db.session.commit()
+    print("Banco recriado com sucesso!")
